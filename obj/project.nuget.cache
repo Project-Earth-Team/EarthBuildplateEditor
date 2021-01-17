@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "9kBFhh+wHMZitfD7tGoF1gdjhZY8a3xwtENu1oL+rdhY7cqnpYNMtaohqy4hGvNVlglJ498m+hgH03Le9G83OA==",
+  "success": true,
+  "projectFilePath": "C:\\Workspace\\Programming\\c#\\EarthBuildplateEditor\\EarthBuildplateEditor\\EarthBuildplateEditor.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Lumen\\.nuget\\packages\\newtonsoft.json\\12.0.3\\newtonsoft.json.12.0.3.nupkg.sha512",
+    "C:\\Users\\Lumen\\.nuget\\packages\\raylib-cs\\3.5.0\\raylib-cs.3.5.0.nupkg.sha512"
+  ],
+  "logs": []
+}
