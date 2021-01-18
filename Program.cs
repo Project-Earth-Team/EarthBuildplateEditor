@@ -20,7 +20,7 @@ namespace EarthBuildplateEditor
 
             Console.WriteLine("Minecraft Earth Buildplate File Format Editor \n Version " + version + "\n Enter path to input file:");
             // String targetFilePath = Console.ReadLine();           
-            String targetFilePath = @"C:\Workspace\Programming\c#\EarthBuildplateEditor\plates\test_c.plate";
+            String targetFilePath = @"C:\Workspace\Programming\c#\EarthBuildplateEditor\plates\test_b.plate";
             if (!File.Exists(targetFilePath))
             {
                 Console.WriteLine("Error: File does not exist");
@@ -54,7 +54,6 @@ namespace EarthBuildplateEditor
             Dictionary<int, List<Texture2D>> chunkTextures = new Dictionary<int, List<Texture2D>>();
 
             //editor data
-            int currentSubchunk = 0;
             int maxSubChunk = plate.sub_chunks.Count - 1;
             String selectedBlock = "beacon";
             bool cursorActive = false;
@@ -89,32 +88,36 @@ namespace EarthBuildplateEditor
                 BeginDrawing();
                 ClearBackground(WHITE);
                 BeginMode3D(camera);
-
-
-                //Positioning offsets for this plate's blocks.
-                //int xOffset = plate.sub_chunks[currentSubchunk].position.x;
-                //int yOffset = plate.sub_chunks[currentSubchunk].position.y;
-                //int zOffset = plate.sub_chunks[currentSubchunk].position.z;
-
-
-                int x = 0;
-                int y = 0;
-                int z = 0;
-
-                //Draw Buildplate blocks
-                for (int currentBlock = 0; currentBlock < 4096; currentBlock++)
+                for (int currentSubchunk = 0; currentSubchunk < maxSubChunk; currentSubchunk++)
                 {
-                    x++;
-                    if (x == 16) { x = 0; y += 1; }
-                    if (y == 16) { y = 0; z += 1; }
 
-                    if (plate.sub_chunks[currentSubchunk].blocks[currentBlock] != chunkAirValues[currentSubchunk])
+                    //Positioning offsets for this subchunks's blocks.
+                    int xOffset = plate.sub_chunks[currentSubchunk].position.x;
+                    int yOffset = plate.sub_chunks[currentSubchunk].position.y*16;
+                    int zOffset = plate.sub_chunks[currentSubchunk].position.z;
+
+
+                    int x = 0;
+                    int y = 0;
+                    int z = 0;
+
+                
+
+                    //Draw Buildplate blocks
+                    for (int currentBlock = 0; currentBlock < 4096; currentBlock++)
                     {
-                        int textureIndex = plate.sub_chunks[currentSubchunk].blocks[currentBlock]; //index
+                        x++;
+                        if (x == 16) { x = 0; y += 1; }
+                        if (y == 16) { y = 0; z += 1; }
 
-                        var textures = chunkTextures[currentSubchunk];
+                        if (plate.sub_chunks[currentSubchunk].blocks[currentBlock] != chunkAirValues[currentSubchunk])
+                        {
+                            int textureIndex = plate.sub_chunks[currentSubchunk].blocks[currentBlock]; //index
 
-                        DrawCubeTexture(textures[textureIndex], new Vector3(x, y, z), 1.0f, 1.0f, 1.0f, WHITE);
+                            var textures = chunkTextures[currentSubchunk];
+
+                            DrawCubeTexture(textures[textureIndex], new Vector3(x+xOffset, y+yOffset, z+zOffset), 1.0f, 1.0f, 1.0f, WHITE);
+                        }
                     }
                 }
 
@@ -131,9 +134,9 @@ namespace EarthBuildplateEditor
                 }
                 EndMode3D();
 
-                DrawText("Current Subchunk: " + currentSubchunk, 10, 10, 10, BLACK);
-                DrawText("Left/Right arrow to change subchunk", 10, 30, 10, BLACK);
-                DrawText("Current air val: " + chunkAirValues[currentSubchunk], 10, 50, 10, BLACK);
+                DrawText(plate.sub_chunks.Count +" subchunks ", 10, 10, 10, BLACK);
+                //DrawText("Left/Right arrow to change subchunk", 10, 30, 10, BLACK);
+               // DrawText("Current air val: " + chunkAirValues[currentSubchunk], 10, 50, 10, BLACK);
                 DrawText("Selected Block: " + selectedBlock, 10, 70, 10, BLACK);
                 DrawText("Press E to export to plate64", 10, 90, 10, BLACK);
 
@@ -150,17 +153,7 @@ namespace EarthBuildplateEditor
                     camY -= 0.1f;
                 }
               
-                //Other controls
-                if (IsKeyPressed(KeyboardKey.KEY_LEFT))
-                {
-                    currentSubchunk -= 1;
-                    if (currentSubchunk < 0) { currentSubchunk = 0; }
-                }
-                if (IsKeyPressed(KeyboardKey.KEY_RIGHT))
-                {
-                    currentSubchunk += 1;
-                    if (currentSubchunk > maxSubChunk) { currentSubchunk = maxSubChunk; }
-                }
+             
                 if (IsKeyPressed(KeyboardKey.KEY_E))
                 {
 
