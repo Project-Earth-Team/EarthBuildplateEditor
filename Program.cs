@@ -20,13 +20,16 @@ namespace EarthBuildplateEditor
 
             Console.WriteLine("Minecraft Earth Buildplate File Format Editor \n Version " + version + "\n Enter path to input file:");
             // String targetFilePath = Console.ReadLine();           
-            String targetFilePath = @"C:\Workspace\Programming\c#\EarthBuildplateEditor\plates\test.plate";
+            String targetFilePath = @"C:\Workspace\Programming\c#\EarthBuildplateEditor\plates\test_c.plate";
             if (!File.Exists(targetFilePath))
             {
                 Console.WriteLine("Error: File does not exist");
                 return;
             }
             String fileData = File.ReadAllText(targetFilePath);
+            String fileName = targetFilePath.Split(@"\")[targetFilePath.Split(@"\").Length - 1]; //get the filename with .plate
+            int fileRev = 1; //used for saving so we dont save over a prior rev. useful when preparing multiple tests.
+            fileName = fileName.Split(".")[0]; //remove the .plate
             //Deserialize
             Buildplate plate = JsonConvert.DeserializeObject<Buildplate>(fileData);
             Console.WriteLine("Version: " + plate.format_version + " Subchunk Count: " + plate.sub_chunks.Count + " Entity Count: " + plate.entities.Count);
@@ -48,7 +51,7 @@ namespace EarthBuildplateEditor
 
             //Render Data
             List<Texture2D> textures = new List<Texture2D> { };
-            Dictionary<int, int> airVals = new Dictionary<int, int>();
+            Dictionary<int, int> chunkAirValues = new Dictionary<int, int>();
             Dictionary<int, int> chunkTextureOffsets = new Dictionary<int, int>();
 
             //editor data
@@ -81,7 +84,7 @@ namespace EarthBuildplateEditor
                     }
                     else
                     {
-                        airVals.Add(subchunk, paletteIndex);
+                        chunkAirValues.Add(subchunk, paletteIndex);
                     }
                 }
             }
@@ -113,7 +116,7 @@ namespace EarthBuildplateEditor
                     if (x == 16) { x = 0; y += 1; }
                     if (y == 16) { y = 0; z += 1; }
 
-                    if (plate.sub_chunks[currentSubchunk].blocks[currentBlock] != airVals[currentSubchunk])
+                    if (plate.sub_chunks[currentSubchunk].blocks[currentBlock] != chunkAirValues[currentSubchunk])
                     {
                         int textureIndex = plate.sub_chunks[currentSubchunk].blocks[currentBlock]; //index
 
@@ -126,7 +129,8 @@ namespace EarthBuildplateEditor
 
                 DrawText("Current Subchunk: " + currentSubchunk, 10, 10, 10, BLACK);
                 DrawText("Left/Right arrow to change subchunk", 10, 30, 10, BLACK);
-                DrawText("Current air val: " + airVals[currentSubchunk], 10, 50, 10, BLACK);
+                DrawText("Current air val: " + chunkAirValues[currentSubchunk], 10, 50, 10, BLACK);
+                DrawText("Press E to export to plate64", 10, 80, 10, BLACK);
 
                 EndDrawing();
 
@@ -151,6 +155,15 @@ namespace EarthBuildplateEditor
                 {
                     currentSubchunk += 1;
                     if (currentSubchunk > maxSubChunk) { currentSubchunk = maxSubChunk; }
+                }
+                if (IsKeyPressed(KeyboardKey.KEY_E))
+                {
+
+                    string exportPath = @"./exports/" + fileName + "_"+ fileRev+ ".plate64";
+                    fileRev++;
+                    string exportData = Util.Base64Encode(JsonConvert.SerializeObject(plate));
+                    System.IO.Directory.CreateDirectory("./exports/");
+                    System.IO.File.WriteAllText(exportPath, exportData);
                 }
 
             }
