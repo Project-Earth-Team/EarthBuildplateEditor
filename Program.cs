@@ -55,7 +55,7 @@ namespace EarthBuildplateEditor
 
             //editor data
             int maxSubChunk = plate.sub_chunks.Count - 1;
-            String selectedBlock = "beacon";
+            String selectedBlock = "dirt";
             bool cursorActive = false;
 
 
@@ -92,10 +92,16 @@ namespace EarthBuildplateEditor
                 {
 
                     //Positioning offsets for this subchunks's blocks.
-                    int xOffset = plate.sub_chunks[currentSubchunk].position.x;
+                    int xOffset = plate.sub_chunks[currentSubchunk].position.x*16;
                     int yOffset = plate.sub_chunks[currentSubchunk].position.y*16;
-                    int zOffset = plate.sub_chunks[currentSubchunk].position.z;
-
+                    int zOffset = plate.sub_chunks[currentSubchunk].position.z*16;
+                    //Constrain offsets
+                   // if (xOffset > 16) { xOffset = 16; }
+                   // if (xOffset < -16) { xOffset = -16; }
+                   // if (yOffset > 16) { yOffset = 16; }
+                   // if (yOffset < -16) { yOffset = -16; }
+                   // if (zOffset > 16) { zOffset = 16; }
+                   // if (zOffset < -16) { zOffset = -16; }
 
                     int x = 0;
                     int y = 0;
@@ -116,7 +122,10 @@ namespace EarthBuildplateEditor
 
                             var textures = chunkTextures[currentSubchunk];
 
-                            DrawCubeTexture(textures[textureIndex], new Vector3(x+xOffset, y+yOffset, z+zOffset), 1.0f, 1.0f, 1.0f, WHITE);
+                           // Console.WriteLine("subchunk x/y/z offset: " + xOffset + "," + yOffset + "," + zOffset);
+                           // Console.WriteLine("Block x/y/z: " + x + "," + y + "," + z);
+
+                            DrawCubeTexture(textures[textureIndex], new Vector3(x, y+yOffset, z), 1.0f, 1.0f, 1.0f, WHITE);
                         }
                     }
                 }
