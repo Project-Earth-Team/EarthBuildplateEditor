@@ -20,7 +20,7 @@ namespace EarthBuildplateEditor
 
             Console.WriteLine("Minecraft Earth Buildplate File Format Editor \n Version " + version + "\n Enter path to input file:");
             // String targetFilePath = Console.ReadLine();           
-            String targetFilePath = @"C:\Workspace\Programming\c#\EarthBuildplateEditor\plates\test_b.plate";
+            String targetFilePath = @"C:\Workspace\Programming\c#\EarthBuildplateEditor\plates\test_c.plate";
             if (!File.Exists(targetFilePath))
             {
                 Console.WriteLine("Error: File does not exist");
@@ -88,31 +88,22 @@ namespace EarthBuildplateEditor
                 BeginDrawing();
                 ClearBackground(WHITE);
                 BeginMode3D(camera);
-                for (int currentSubchunk = 0; currentSubchunk < maxSubChunk; currentSubchunk++)
+                for (int currentSubchunk = 0; currentSubchunk < maxSubChunk+1; currentSubchunk++)
                 {
-
-                    //Positioning offsets for this subchunks's blocks.
-                    int xOffset = plate.sub_chunks[currentSubchunk].position.x*16;
-                    int yOffset = plate.sub_chunks[currentSubchunk].position.y*16;
-                    int zOffset = plate.sub_chunks[currentSubchunk].position.z*16;
-                    //Constrain offsets
-                   // if (xOffset > 16) { xOffset = 16; }
-                   // if (xOffset < -16) { xOffset = -16; }
-                   // if (yOffset > 16) { yOffset = 16; }
-                   // if (yOffset < -16) { yOffset = -16; }
-                   // if (zOffset > 16) { zOffset = 16; }
-                   // if (zOffset < -16) { zOffset = -16; }
 
                     int x = 0;
                     int y = 0;
                     int z = 0;
+                    int origx;
+                    int origy;
+                    int origz;
 
-                
 
                     //Draw Buildplate blocks
                     for (int currentBlock = 0; currentBlock < 4096; currentBlock++)
                     {
                         x++;
+
                         if (x == 16) { x = 0; y += 1; }
                         if (y == 16) { y = 0; z += 1; }
 
@@ -122,10 +113,29 @@ namespace EarthBuildplateEditor
 
                             var textures = chunkTextures[currentSubchunk];
 
-                           // Console.WriteLine("subchunk x/y/z offset: " + xOffset + "," + yOffset + "," + zOffset);
-                           // Console.WriteLine("Block x/y/z: " + x + "," + y + "," + z);
+                            // Console.WriteLine("subchunk x/y/z offset: " + xOffset + "," + yOffset + "," + zOffset);
+                            //Console.WriteLine("Block x/y/z: " + x + "," + y + "," + z);
+                            origx = x;
+                            if (x >= 9) x -= 8;
+                            else x += 8;
 
-                            DrawCubeTexture(textures[textureIndex], new Vector3(x, y+yOffset, z), 1.0f, 1.0f, 1.0f, WHITE);
+                            origy = y;
+                            if (y >= 9) y -= 8;
+                            else y += 8;
+
+                            origz = z;
+                            if (z >= 9) z -= 8;
+                            else z += 8;
+
+                            if (x == 8)
+                            {
+                                y -= 1;
+                            }
+
+                            DrawCubeTexture(textures[textureIndex], new Vector3(x, y, z), 1.0f, 1.0f, 1.0f, WHITE);
+                            x = origx;
+                            y = origy;
+                            z = origz;
                         }
                     }
                 }
