@@ -50,43 +50,34 @@ namespace EarthBuildplateEditor
 
 
             //Render Data
-            List<Texture2D> textures = new List<Texture2D> { };
             Dictionary<int, int> chunkAirValues = new Dictionary<int, int>();
-            Dictionary<int, int> chunkTextureOffsets = new Dictionary<int, int>();
+            Dictionary<int, List<Texture2D>> chunkTextures = new Dictionary<int, List<Texture2D>>();
 
             //editor data
             int currentSubchunk = 0;
             int maxSubChunk = plate.sub_chunks.Count - 1;
+            String selectedBlock = "beacon";
+            bool cursorActive = false;
 
 
-            //Texture itr loop
+            //Texture  load
+            Texture2D entityTex = LoadTexture(@"C:\Workspace\Programming\c#\EarthBuildplateEditor\earth_res\textures\entity\entitydummy.png");
             for (int subchunk = 0; subchunk < plate.sub_chunks.Count; subchunk++)
             {
-
-                //Generate offsets for grabbing each subchunk's textures. An offset tells us how many textures we have to go before we find a given subchunk's.
-
-                int offset = 0;
-                for (int earlierChunk = 0; earlierChunk < subchunk; earlierChunk++)
-                {
-                    offset += plate.sub_chunks[earlierChunk].block_palette.Count - 2;
-                }
-                //add our offset to the table
-                chunkTextureOffsets.Add(subchunk, offset);
-
+                List<Texture2D> textures = new List<Texture2D>() { };
                 //Create the textures
                 for (int paletteIndex = 0; paletteIndex < plate.sub_chunks[subchunk].block_palette.Count; paletteIndex++)
                 {
                     Buildplate.PaletteBlock paletteBlock = plate.sub_chunks[subchunk].block_palette[paletteIndex];
                     String blockName = paletteBlock.name.Split(":")[1]; //gives us a clean texture name like dirt or grass_block
-                    if (blockName != "air")
-                    {
-                        textures.Add(LoadTexture(textureBasePath + blockName + ".png"));
-                    }
-                    else
+                    textures.Add(LoadTexture(textureBasePath + blockName + ".png")); // we assign the texture to this subchunks part of the texture dict
+                    if (blockName == "air")
                     {
                         chunkAirValues.Add(subchunk, paletteIndex);
                     }
+                  
                 }
+                chunkTextures.Add(subchunk, textures);
             }
 
 
@@ -110,6 +101,7 @@ namespace EarthBuildplateEditor
                 int y = 0;
                 int z = 0;
 
+                //Draw Buildplate blocks
                 for (int currentBlock = 0; currentBlock < 4096; currentBlock++)
                 {
                     x++;
@@ -120,17 +112,30 @@ namespace EarthBuildplateEditor
                     {
                         int textureIndex = plate.sub_chunks[currentSubchunk].blocks[currentBlock]; //index
 
+                        var textures = chunkTextures[currentSubchunk];
+
                         DrawCubeTexture(textures[textureIndex], new Vector3(x, y, z), 1.0f, 1.0f, 1.0f, WHITE);
                     }
                 }
 
+                //Draw entities
+                foreach (Buildplate.Entity entity in plate.entities)
+                {
+                    DrawCubeTexture(entityTex, new Vector3((float)entity.position.x, (float)entity.position.y, (float)entity.position.z), 0.5f, 0.5f, 0.5f, WHITE); ;
+                }
 
+                //Draw Selection Cursor
+                if (cursorActive)
+                {
+                    DrawCubeTexture(LoadTexture(textureBasePath + selectedBlock + ".png"), camera.target, 0.2f, 0.2f, 0.2f, GRAY);
+                }
                 EndMode3D();
 
                 DrawText("Current Subchunk: " + currentSubchunk, 10, 10, 10, BLACK);
                 DrawText("Left/Right arrow to change subchunk", 10, 30, 10, BLACK);
                 DrawText("Current air val: " + chunkAirValues[currentSubchunk], 10, 50, 10, BLACK);
-                DrawText("Press E to export to plate64", 10, 80, 10, BLACK);
+                DrawText("Selected Block: " + selectedBlock, 10, 70, 10, BLACK);
+                DrawText("Press E to export to plate64", 10, 90, 10, BLACK);
 
                 EndDrawing();
 
@@ -164,6 +169,10 @@ namespace EarthBuildplateEditor
                     string exportData = Util.Base64Encode(JsonConvert.SerializeObject(plate));
                     System.IO.Directory.CreateDirectory("./exports/");
                     System.IO.File.WriteAllText(exportPath, exportData);
+                }
+                if (IsKeyPressed(KeyboardKey.KEY_C))
+                {
+                    cursorActive = !cursorActive;
                 }
 
             }
