@@ -20,7 +20,7 @@ namespace EarthBuildplateEditor
 
             Console.WriteLine("Minecraft Earth Buildplate File Format Editor \n Version " + version + "\n Enter path to input file:");
             // String targetFilePath = Console.ReadLine();           
-            String targetFilePath = @"C:\Workspace\Programming\c#\EarthBuildplateEditor\plates\test_b.plate";
+            String targetFilePath = @"C:\Workspace\Programming\c#\EarthBuildplateEditor\plates\test_32.plate";
             if (!File.Exists(targetFilePath))
             {
                 Console.WriteLine("Error: File does not exist");
@@ -32,6 +32,9 @@ namespace EarthBuildplateEditor
             fileName = fileName.Split(".")[0]; //remove the .plate
             //Deserialize
             Buildplate plate = JsonConvert.DeserializeObject<Buildplate>(fileData);
+            //null checks
+            if (plate.entities == null) { plate.entities = new List<Buildplate.Entity>() { }; }
+
             Console.WriteLine("Version: " + plate.format_version + " Subchunk Count: " + plate.sub_chunks.Count + " Entity Count: " + plate.entities.Count);
             Console.WriteLine("Opening Editor");
 
@@ -44,22 +47,35 @@ namespace EarthBuildplateEditor
             camera.type = (int)CAMERA_PERSPECTIVE;
 
             float camY = 2.0f;
-            Raylib.InitWindow(800, 600, "Earth Buildplate Editor");
+            Raylib.InitWindow(1200, 800, "Earth Buildplate Editor");
             SetCameraMode(camera, CAMERA_FIRST_PERSON);
             SetTargetFPS(60);
 
 
-            //Render Data
+            //===Render Data
             Dictionary<int, int> chunkAirValues = new Dictionary<int, int>();
             Dictionary<int, List<Texture2D>> chunkTextures = new Dictionary<int, List<Texture2D>>();
             Dictionary<int, List<int>> chunkConstraintValues = new Dictionary<int, List<int>>();
+            //Model Type lists
+            Dictionary<int, List<int>> chunkModelTypeTorch = new Dictionary<int, List<int>>();
+            Dictionary<int, List<int>> chunkModelTypeStair = new Dictionary<int, List<int>>();
+            Dictionary<int, List<int>> chunkModelTypeSlab = new Dictionary<int, List<int>>();
 
-            //editor data
+            //===editor data
             int maxSubChunk = plate.sub_chunks.Count - 1;
-            String selectedBlock = "dirt";
+            String selectedBlock = "portal";
             bool cursorActive = false;
             bool showConstraints = true;
+            int layers = 16;
+            int slices = 16;
+
+            Vector3 cursorPos;
+
             Texture2D cursorTexture = LoadTexture(@"C:\Workspace\Programming\c#\EarthBuildplateEditor\earth_res\textures\custom\cursor.png");
+            Texture2D layerIcon = LoadTexture(@"C:\Workspace\Programming\c#\EarthBuildplateEditor\earth_res\textures\custom\icon\layer.png");
+            Texture2D selectedBlockIcon = LoadTexture(@"C:\Workspace\Programming\c#\EarthBuildplateEditor\earth_res\textures\custom\icon\selected_block.png");
+            Texture2D sliceIcon = LoadTexture(@"C:\Workspace\Programming\c#\EarthBuildplateEditor\earth_res\textures\custom\icon\slice.png");
+            Texture2D subchunkIcon = LoadTexture(@"C:\Workspace\Programming\c#\EarthBuildplateEditor\earth_res\textures\custom\icon\subchunk.png");
 
 
             //Texture  load
@@ -68,6 +84,8 @@ namespace EarthBuildplateEditor
             {
                 List<Texture2D> textures = new List<Texture2D>() { };
                 List<int> constraints = new List<int>() { };
+                List<int> modelTypeTorch = new List<int>() { };
+
                 //Create the textures
                 for (int paletteIndex = 0; paletteIndex < plate.sub_chunks[subchunk].block_palette.Count; paletteIndex++)
                 {
@@ -82,10 +100,15 @@ namespace EarthBuildplateEditor
                     {
                         constraints.Add(paletteIndex);
                     }
+                    if (blockName.Contains("torch"))
+                    {
+                        modelTypeTorch.Add(paletteIndex);
+                    }
                   
                 }
                 chunkTextures.Add(subchunk, textures);
                 chunkConstraintValues.Add(subchunk, constraints);
+                chunkModelTypeTorch.Add(subchunk, modelTypeTorch);
             }
 
 
@@ -97,6 +120,15 @@ namespace EarthBuildplateEditor
                 BeginDrawing();
                 ClearBackground(WHITE);
                 BeginMode3D(camera);
+
+                //Take care of cursor position
+                cursorPos.X = (int) Math.Floor(camera.target.X);
+                cursorPos.Y = (int) Math.Floor(camera.target.Y-1);
+                cursorPos.Z = (int) Math.Floor(camera.target.Z);
+
+
+
+
                 for (int currentSubchunk = 0; currentSubchunk < maxSubChunk+1; currentSubchunk++)
                 {
 
@@ -106,20 +138,30 @@ namespace EarthBuildplateEditor
                     int origx;
                     int origy;
                     int origz;
+                    int xOffset = plate.sub_chunks[currentSubchunk].position.x*16;
+                    int yOffset = plate.sub_chunks[currentSubchunk].position.y*16;
+                    int zOffset = plate.sub_chunks[currentSubchunk].position.z*16;
+
 
 
                     //Draw Buildplate blocks, and place
                     for (int currentBlock = 0; currentBlock < 4096; currentBlock++)
                     {
-                        
-                        x++;
 
-                        if (x == 16) { x = 0; y += 1; }
-                        if (y == 16) { y = 0; z += 1; }
+                       
 
+
+                        z++;
+                        if (z == 16) { z = 0; y += 1; }
+                        if (y == 16) { y = 0; x += 1; }
+
+                       
                         bool shouldRender = true;
                         if (plate.sub_chunks[currentSubchunk].blocks[currentBlock] == chunkAirValues[currentSubchunk]) { shouldRender = false; }
                         if (!showConstraints && chunkConstraintValues[currentSubchunk].Contains(plate.sub_chunks[currentSubchunk].blocks[currentBlock])) { shouldRender = false; }
+                        if (y > layers) { shouldRender = false; }
+                        if (x > slices) { shouldRender = false; }
+
 
                         if (shouldRender)
                         {
@@ -129,40 +171,48 @@ namespace EarthBuildplateEditor
 
                             // Console.WriteLine("subchunk x/y/z offset: " + xOffset + "," + yOffset + "," + zOffset);
                             //Console.WriteLine("Block x/y/z: " + x + "," + y + "," + z);
-                            origx = x;
-                            if (x >= 9) x -= 8;
-                            else x += 8;
-
-                            origy = y;
-                            if (y >= 9) y -= 8;
-                            else y += 8;
-
                             origz = z;
-                            if (z >= 9) z -= 8;
-                            else z += 8;
+                            origy = y;
 
-                            if (x == 8)
+                            if (z == 0)
                             {
+                                z = 16;
                                 y -= 1;
                             }
 
-                            //Check if we want to place/remove a block here. If so, we want to modify this array value.
-                            if (camera.target == new Vector3(x, y, z) && IsMouseButtonPressed(MouseButton.MOUSE_LEFT_BUTTON) && cursorActive) {
-                                // left = destroy
+                            if (y == -1)
+                            {
+                                y = 16;
+                            }
+
+
+                            if (IsMouseButtonPressed(MouseButton.MOUSE_LEFT_BUTTON) && cursorPos == new Vector3(x + xOffset, y + yOffset, z + zOffset))
+                            {
                                 plate.sub_chunks[currentSubchunk].blocks[currentBlock] = chunkAirValues[currentSubchunk];
                             }
-                            if (camera.target == new Vector3(x, y, z) && IsMouseButtonPressed(MouseButton.MOUSE_RIGHT_BUTTON))
+                            if (IsMouseButtonPressed(MouseButton.MOUSE_RIGHT_BUTTON) && cursorPos == new Vector3(x + xOffset, y + yOffset, z + zOffset))
                             {
-                                // right = place
-                                //plate.sub_chunks[currentSubchunk].blocks[currentBlock] TODO: Add palette check code and what not :D
+                                //Check the palette!
+                                bool doesPaletteContainBlock = false;
+                                foreach (Buildplate.PaletteBlock paletteBlock in plate.sub_chunks[currentSubchunk].block_palette)
+                                {
+                                    if(paletteBlock.name.Split(":")[1] == selectedBlock) { doesPaletteContainBlock = true; }
+                                }
+                                //if the palette does not contain the block, add it both to the palette and  to the texture index
+                                if (!doesPaletteContainBlock)
+                                {
+                                    plate.sub_chunks[currentSubchunk].block_palette.Add(new Buildplate.PaletteBlock { data = 0, name = "minecraft:" + selectedBlock });
+                                    chunkTextures[currentSubchunk].Add(LoadTexture(textureBasePath + selectedBlock + ".png"));
+                                }
 
+                                //TODO: Build function to query a palette for the index of a given blocktype 
+                                plate.sub_chunks[currentSubchunk].blocks[currentBlock] = chunkAirValues[currentSubchunk];
                             }
 
-                            //Draw 
-                            DrawCubeTexture(textures[textureIndex], new Vector3(x, y, z), 1.0f, 1.0f, 1.0f, WHITE);
-                            x = origx;
-                            y = origy;
+
+                            DrawCubeTexture(textures[textureIndex],new Vector3(x + xOffset, y + yOffset, z + zOffset), 1.0f, 1.0f, 1.0f, WHITE);
                             z = origz;
+                            y = origy;
                         }
                     }
                 }
@@ -176,15 +226,22 @@ namespace EarthBuildplateEditor
                 //Draw Selection Cursor
                 if (cursorActive)
                 {
-                    DrawCubeTexture(cursorTexture, camera.target, 0.2f, 0.2f, 0.2f, GRAY);
+                    DrawCubeWires(cursorPos, 1.1f, 1.1f, 1.1f, YELLOW);
                 }
                 EndMode3D();
 
-                DrawText(plate.sub_chunks.Count +" subchunks ", 10, 10, 10, BLACK);
-                //DrawText("Left/Right arrow to change subchunk", 10, 30, 10, BLACK);
-               // DrawText("Current air val: " + chunkAirValues[currentSubchunk], 10, 50, 10, BLACK);
-                DrawText("Selected Block: " + selectedBlock, 10, 70, 10, BLACK);
-                DrawText("Press E to export to plate64", 10, 90, 10, BLACK);
+                DrawTexture(subchunkIcon, 10, 10, WHITE);
+                DrawText(plate.sub_chunks.Count +" subchunks ", 39, 20, 10, BLACK);
+                // DrawText("Left/Right arrow to change slice count, Up/Down to change Layer count", 10, 30, 10, BLACK);
+                DrawTexture(sliceIcon, 10, 50, WHITE);
+                DrawText("Slices: " +slices, 39, 60, 10, BLACK);
+
+                DrawTexture(layerIcon, 10, 80, WHITE);
+                DrawText("Layers: " + layers, 39, 90, 10, BLACK);
+
+                DrawText("Cx/Cy/Cz: " + cursorPos, 10, 110, 10, BLACK);
+
+
 
                 EndDrawing();
 
@@ -216,6 +273,26 @@ namespace EarthBuildplateEditor
                 if (IsKeyPressed(KeyboardKey.KEY_V))
                 {
                     showConstraints = !showConstraints;
+                }
+                if (IsKeyPressed(KeyboardKey.KEY_UP))
+                {
+                    layers++;
+                    if (layers > 16) { layers = 16; }
+                }
+                if (IsKeyPressed(KeyboardKey.KEY_DOWN))
+                {
+                    layers--;
+                    if (layers < 0) { layers = 0; }
+                }
+                if (IsKeyPressed(KeyboardKey.KEY_LEFT))
+                {
+                    slices--;
+                    if (slices < 0) { slices = 0; }
+                }
+                if (IsKeyPressed(KeyboardKey.KEY_RIGHT))
+                {
+                    slices++;
+                    if (slices > 16) { slices = 16; }
                 }
 
             }
